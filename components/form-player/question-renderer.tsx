@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { QuestionConfig, ThemeConfig, Json } from '@/lib/database.types'
+import { QuestionConfig, ThemeConfig, Json, LocationAnswer } from '@/lib/database.types'
+import { LocationInput } from '@/components/ui/location-input'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -464,6 +465,16 @@ export function QuestionRenderer({
           value={value as FileUploadValue | null}
           onChange={onChange}
           theme={theme}
+        />
+      )
+
+    case 'location':
+      return (
+        <LocationInput
+          value={value as LocationAnswer | null}
+          onChange={onChange}
+          theme={theme}
+          placeholder={question.placeholder}
         />
       )
 

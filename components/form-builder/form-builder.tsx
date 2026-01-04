@@ -445,6 +445,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
               </div>
               <QuestionEditor
                 question={selectedQuestion}
+                allQuestions={questions}
                 onUpdate={(updates) => updateQuestion(selectedQuestion.id, updates)}
                 onDelete={() => deleteQuestion(selectedQuestion.id)}
               />

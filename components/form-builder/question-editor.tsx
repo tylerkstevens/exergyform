@@ -9,14 +9,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Trash2, Plus, GripVertical, X } from 'lucide-react'
+import { BranchEditor } from './branch-editor'
 
 interface QuestionEditorProps {
   question: QuestionConfig
+  allQuestions?: QuestionConfig[]
   onUpdate: (updates: Partial<QuestionConfig>) => void
   onDelete: () => void
 }
 
-export function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
+export function QuestionEditor({ question, allQuestions = [], onUpdate, onDelete }: QuestionEditorProps) {
   const typeInfo = getQuestionTypeInfo(question.type)
 
   const addOption = () => {
@@ -116,9 +118,10 @@ export function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorP
         </div>
       )}
 
-      {(question.type === 'short_text' || question.type === 'long_text' || 
-        question.type === 'email' || question.type === 'phone' || 
-        question.type === 'url' || question.type === 'number') && (
+      {(question.type === 'short_text' || question.type === 'long_text' ||
+        question.type === 'email' || question.type === 'phone' ||
+        question.type === 'url' || question.type === 'number' ||
+        question.type === 'location') && (
         <div>
           <Label htmlFor="placeholder" className="text-sm font-medium">Placeholder</Label>
           <Input
@@ -231,6 +234,18 @@ export function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorP
       </div>
 
       <Separator />
+
+      {/* Branching Logic */}
+      {allQuestions.length > 0 && (
+        <>
+          <BranchEditor
+            question={question}
+            allQuestions={allQuestions}
+            onUpdate={onUpdate}
+          />
+          <Separator />
+        </>
+      )}
 
       {/* Delete button */}
       <Button

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Form, QuestionConfig, Json } from '@/lib/database.types'
+import { Form, QuestionConfig, Json, LocationAnswer } from '@/lib/database.types'
 import { getTheme, getThemeCSSVariables } from '@/lib/themes'
+import { getNextQuestionId, getQuestionPath } from '@/lib/branching'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -27,14 +28,22 @@ export function FormPlayer({ form }: FormPlayerProps) {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [direction, setDirection] = useState(0)
-  
+  const [visitedPath, setVisitedPath] = useState<string[]>([]) // Track visited question IDs for back navigation
+
   const containerRef = useRef<HTMLDivElement>(null)
   const skipNextValidationRef = useRef(false)
 
   const currentQuestion = questions[currentIndex]
-  const isLastQuestion = currentIndex === questions.length - 1
-  const isFirstQuestion = currentIndex === 0
-  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
+
+  // Calculate the expected path based on current answers (for progress bar)
+  const expectedPath = getQuestionPath(questions, answers)
+  const currentPositionInPath = expectedPath.findIndex(q => q.id === currentQuestion?.id)
+  const progress = expectedPath.length > 0 ? ((currentPositionInPath + 1) / expectedPath.length) * 100 : 0
+
+  // Check if we're at the last question in our path
+  const nextQuestionId = currentQuestion ? getNextQuestionId(currentQuestion, questions, answers) : null
+  const isLastQuestion = nextQuestionId === null
+  const isFirstQuestion = visitedPath.length === 0
 
   const validateCurrentQuestion = useCallback(() => {
     if (!currentQuestion) return true
@@ -79,6 +88,14 @@ export function FormPlayer({ form }: FormPlayerProps) {
       }
     }
 
+    if (currentQuestion.type === 'location') {
+      const locationAnswer = answer as LocationAnswer | null
+      if (currentQuestion.required && (!locationAnswer || !locationAnswer.place_name)) {
+        setErrors({ ...errors, [currentQuestion.id]: 'Please select a location from the suggestions' })
+        return false
+      }
+    }
+
     // Clear error if valid
     const newErrors = { ...errors }
     delete newErrors[currentQuestion.id]
@@ -90,21 +107,43 @@ export function FormPlayer({ form }: FormPlayerProps) {
     // Check both the parameter and the ref for skip validation
     const shouldSkip = skipValidation || skipNextValidationRef.current
     skipNextValidationRef.current = false // Reset the ref
-    
+
     if (!shouldSkip && !validateCurrentQuestion()) return
-    
-    if (isLastQuestion) {
+
+    // Get the next question based on branching logic
+    const nextId = currentQuestion ? getNextQuestionId(currentQuestion, questions, answers) : null
+
+    if (nextId === null) {
+      // End of form - submit
       handleSubmit()
     } else {
-      setDirection(1)
-      setCurrentIndex(prev => Math.min(prev + 1, questions.length - 1))
+      // Find the index of the next question
+      const nextIndex = questions.findIndex(q => q.id === nextId)
+      if (nextIndex >= 0) {
+        setDirection(1)
+        // Track the current question in visited path before moving
+        if (currentQuestion) {
+          setVisitedPath(prev => [...prev, currentQuestion.id])
+        }
+        setCurrentIndex(nextIndex)
+      }
     }
-  }, [isLastQuestion, questions.length, validateCurrentQuestion])
+  }, [currentQuestion, questions, answers, validateCurrentQuestion])
 
   const goToPrevious = useCallback(() => {
-    setDirection(-1)
-    setCurrentIndex(prev => Math.max(prev - 1, 0))
-  }, [])
+    if (visitedPath.length === 0) return
+
+    // Get the last visited question
+    const previousId = visitedPath[visitedPath.length - 1]
+    const previousIndex = questions.findIndex(q => q.id === previousId)
+
+    if (previousIndex >= 0) {
+      setDirection(-1)
+      // Remove the last question from visited path
+      setVisitedPath(prev => prev.slice(0, -1))
+      setCurrentIndex(previousIndex)
+    }
+  }, [visitedPath, questions])
 
   const handleSubmit = async () => {
     if (!validateCurrentQuestion()) return
@@ -145,6 +184,15 @@ export function FormPlayer({ form }: FormPlayerProps) {
       if (e.key === 'Enter' && !e.shiftKey) {
         // Don't submit on enter for textarea
         if (currentQuestion?.type === 'long_text') {
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault()
+            goToNext()
+          }
+          return
+        }
+        // Don't submit on enter for location (let it handle dropdown selection)
+        if (currentQuestion?.type === 'location') {
+          // Only submit if Cmd/Ctrl+Enter or if event wasn't handled by location input
           if (e.metaKey || e.ctrlKey) {
             e.preventDefault()
             goToNext()

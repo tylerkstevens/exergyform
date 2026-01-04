@@ -1,18 +1,19 @@
 import { QuestionType, QuestionConfig } from './database.types'
-import { 
-  Type, 
-  AlignLeft, 
-  List, 
-  CheckSquare, 
-  Mail, 
-  Phone, 
-  Hash, 
-  Calendar, 
-  Star, 
-  Gauge, 
-  ThumbsUp, 
-  Upload, 
+import {
+  Type,
+  AlignLeft,
+  List,
+  CheckSquare,
+  Mail,
+  Phone,
+  Hash,
+  Calendar,
+  Star,
+  Gauge,
+  ThumbsUp,
+  Upload,
   Link,
+  MapPin,
   LucideIcon
 } from 'lucide-react'
 
@@ -139,6 +140,15 @@ export const questionTypes: QuestionTypeInfo[] = [
     icon: Link,
     defaultConfig: {
       placeholder: 'https://example.com',
+    },
+  },
+  {
+    type: 'location',
+    label: 'Location',
+    description: 'Address, city, or zip code with autocomplete',
+    icon: MapPin,
+    defaultConfig: {
+      placeholder: 'Start typing your location...',
     },
   },
 ]

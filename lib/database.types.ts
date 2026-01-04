@@ -21,6 +21,32 @@ export type QuestionType =
   | 'yes_no'
   | 'file_upload'
   | 'url'
+  | 'location'
+
+// Location answer structure (for location question type)
+export interface LocationAnswer {
+  place_name: string      // Full formatted address/place name
+  city?: string
+  state?: string
+  country?: string
+  postcode?: string
+  latitude: number
+  longitude: number
+}
+
+// Branch condition operators
+export type BranchOperator = 'equals' | 'not_equals' | 'contains' | 'in'
+
+// Branch rule for conditional question flow
+export interface BranchRule {
+  id: string
+  condition: {
+    questionId: string           // Which question's answer to check
+    operator: BranchOperator
+    value: string | string[]     // Value(s) to compare against
+  }
+  nextQuestionId: string | null  // Where to go (null = end form)
+}
 
 // Form status
 export type FormStatus = 'draft' | 'published' | 'closed'
@@ -58,6 +84,9 @@ export interface QuestionConfig {
   allowedFileTypes?: string[] // For file_upload
   maxFileSize?: number // In MB
   placeholder?: string
+  // Conditional branching
+  branches?: BranchRule[]           // Rules for conditional navigation
+  defaultNextId?: string | null     // Fallback if no branch matches (null = end form)
 }
 
 // Database tables
